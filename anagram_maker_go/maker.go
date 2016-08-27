@@ -326,9 +326,10 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 		for keyInd := startInd; keyInd < len(keys); keyInd++ {
 			item := dict[keys[keyInd]]
 
-			ans := []AnagramBase{item.Anagram}
-			for _, it := range items {
-				ans = append(ans, it.Anagram)
+			ans := make([]AnagramBase, len(items)+1)
+			ans[0] = item.Anagram
+			for i, it := range items {
+				ans[i+1] = it.Anagram
 			}
 
 			if AnagramListExceedsLimit(ans, original) {
@@ -336,9 +337,11 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 			}
 
 			if AnagramSumEqual(ans, original) {
-				res := itemList{}
-				res = append(res, items...)
-				res = append(res, item)
+				res := make(itemList, len(items)+1)
+				for i, it := range items {
+					res[i] = it
+				}
+				res[len(res)-1] = item
 
 				results = append(results, res)
 				continue
@@ -352,7 +355,7 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 	}
 
 	// Collect search results as item lists
-	itemResults := passDict(0, nil)
+	itemResults := passDict(0, make(itemList, 0, len(dict)))
 
 	type wordList []string
 	var toWordLists func(wordList, itemList) []wordList
@@ -368,7 +371,9 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 	// `prefix` - a list of words, selected on previous recursion frames.
 	toWordLists = func(prefix wordList, items itemList) (ws []wordList) {
 		if len(items) == 0 {
-			return []wordList{prefix}
+			newPrefix := make(wordList, len(prefix))
+			copy(newPrefix, prefix)
+			return []wordList{newPrefix}
 		}
 
 		item := items[0]
@@ -382,15 +387,16 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 	}
 
 	// Collect search results as word lists
-	var resultsAsWords []wordList
+	resultsAsWords := make([]wordList, 0, len(itemResults))
 	for _, ilist := range itemResults {
-		resultsAsWords = append(resultsAsWords, toWordLists(nil, ilist)...)
+		prefix := make(wordList, 0, len(ilist))
+		resultsAsWords = append(resultsAsWords, toWordLists(prefix, ilist)...)
 	}
 
 	originalTitled := strings.Title(line)
 
 	// Join word lists into strings
-	resultsAsStrings := []string{}
+	resultsAsStrings := make([]string, 0, len(resultsAsWords))
 	for _, list := range resultsAsWords {
 		for i := range list {
 			list[i] = strings.ToLower(list[i])
