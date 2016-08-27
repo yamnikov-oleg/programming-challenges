@@ -161,6 +161,65 @@ func TestAnagramEquals(t *testing.T) {
 	}
 }
 
+func TestAnagramListEquals(t *testing.T) {
+	var cases = []struct {
+		as []AnagramBase
+		b  AnagramBase
+		eq bool
+	}{
+		{
+			nil, nil, true,
+		},
+		{
+			nil, AnagramBase{}, true,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'b': 3},
+				AnagramBase{'a': 2},
+			},
+			AnagramBase{'a': 2, 'b': 3},
+			true,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'c': 1},
+				AnagramBase{'a': 1, 'c': 1},
+				AnagramBase{'c': 1},
+			},
+			AnagramBase{'a': 1, 'c': 4},
+			false,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'a': 1, 'b': 2},
+				AnagramBase{'d': 1},
+				AnagramBase{'b': 1},
+			},
+			AnagramBase{'a': 1, 'b': 3, 'd': 1},
+			true,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'w': 1, 'd': 1},
+			},
+			AnagramBase{'w': 1, 'o': 1, 'r': 1, 'd': 1},
+			false,
+		},
+	}
+
+	for _, c := range cases {
+		var eq bool
+
+		eq = AnagramSumEqual(c.as, c.b)
+		if eq != c.eq {
+			t.Errorf("%v == %v...", c.as, c.b)
+			t.Errorf("\tExpected: %v", c.eq)
+			t.Errorf("\tGot:      %v", eq)
+		}
+	}
+}
+
 func TestAnagramExceedsLimit(t *testing.T) {
 	var cases = []struct {
 		a, limit AnagramBase
@@ -198,6 +257,58 @@ func TestAnagramExceedsLimit(t *testing.T) {
 		ex = AnagramExceedsLimit(c.a, c.limit)
 		if ex != c.ex {
 			t.Errorf("%v > %v...", c.a, c.limit)
+			t.Errorf("\tExpected: %v", c.ex)
+			t.Errorf("\tGot:      %v", ex)
+		}
+	}
+}
+
+func TestAnagramListExceedsLimit(t *testing.T) {
+	var cases = []struct {
+		as    []AnagramBase
+		limit AnagramBase
+		ex    bool
+	}{
+		{
+			nil, nil, false,
+		},
+		{
+			nil, AnagramBase{}, false,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'b': 3},
+				AnagramBase{'a': 2},
+			},
+			AnagramBase{'a': 1, 'c': 4},
+			true,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'c': 1},
+				AnagramBase{'a': 1, 'c': 1},
+				AnagramBase{'c': 1},
+			},
+			AnagramBase{'a': 1, 'c': 4},
+			false,
+		},
+		{
+			[]AnagramBase{
+				AnagramBase{'a': 1, 'b': 2},
+				AnagramBase{'d': 1},
+				AnagramBase{'b': 1},
+			},
+			AnagramBase{'a': 1, 'c': 4},
+			true,
+		},
+	}
+
+	for _, c := range cases {
+		var ex bool
+
+		ex = AnagramListExceedsLimit(c.as, c.limit)
+		if ex != c.ex {
+			t.Errorf("%v > %v...", c.as, c.limit)
 			t.Errorf("\tExpected: %v", c.ex)
 			t.Errorf("\tGot:      %v", ex)
 		}

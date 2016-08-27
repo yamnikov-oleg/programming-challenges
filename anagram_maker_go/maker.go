@@ -105,14 +105,119 @@ func AnagramEqual(a, b AnagramBase) bool {
 	return true
 }
 
-// AnagramExceedsLimit returns true, is `a` has bigger number of at least
-// one character type.
+// AnagramSumEqual returns true if sum of `as` equals `b`.
+// It's more efficient than adding up all the `as` with AddAnagrams to
+// compare with AnagramEqual.
+func AnagramSumEqual(as []AnagramBase, b AnagramBase) bool {
+	passedKeys := map[rune]bool{}
+
+	for _, a := range as {
+		for rn := range a {
+			if passedKeys[rn] {
+				continue
+			}
+			passedKeys[rn] = true
+
+			var (
+				aim int
+				ok  bool
+			)
+			if aim, ok = b[rn]; !ok {
+				return false
+			}
+
+			sum := 0
+			for _, aa := range as {
+				sum += aa[rn]
+				if sum > aim {
+					return false
+				}
+			}
+
+			if sum != aim {
+				return false
+			}
+		}
+	}
+
+	for rn, aim := range b {
+		if passedKeys[rn] {
+			continue
+		}
+
+		sum := 0
+		for _, aa := range as {
+			sum += aa[rn]
+			if sum > aim {
+				return false
+			}
+		}
+
+		if sum != aim {
+			return false
+		}
+	}
+
+	return true
+}
+
+// AnagramExceedsLimit returns true, if `a` has bigger number of at least
+// one character type, than `limit`.
 func AnagramExceedsLimit(a, limit AnagramBase) bool {
 	for rn := range a {
 		if a[rn] > limit[rn] {
 			return true
 		}
 	}
+	return false
+}
+
+// AnagramListExceedsLimit returns true, if sum of `as` has bigger number of
+// at least one character type, `limit`.
+// It's more efficient than adding up all the `as` with AddAnagrams and
+// calling AnagramExceedsLimit.
+func AnagramListExceedsLimit(as []AnagramBase, limit AnagramBase) bool {
+	passedKeys := map[rune]bool{}
+
+	for _, a := range as {
+		for rn := range a {
+			if passedKeys[rn] {
+				continue
+			}
+			passedKeys[rn] = true
+
+			var (
+				aim int
+				ok  bool
+			)
+			if aim, ok = limit[rn]; !ok {
+				return true
+			}
+
+			sum := 0
+			for _, aa := range as {
+				sum += aa[rn]
+				if sum > aim {
+					return true
+				}
+			}
+		}
+	}
+
+	for rn, aim := range limit {
+		if passedKeys[rn] {
+			continue
+		}
+
+		sum := 0
+		for _, aa := range as {
+			sum += aa[rn]
+			if sum > aim {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
@@ -211,24 +316,26 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 	}
 
 	type itemList []DictItem
-	var passDict func(int, AnagramBase, itemList) []itemList
+	var passDict func(int, itemList) []itemList
 
 	// passDict is a recursive function, which traverses through `dict` by
 	// `keys[startInd:]` to find item lists, whose letter count matches `original`.
 	//
 	// `list` is a list if items, selected on previous recursion frames.
-	// `sum` contains their letter counts summed.
-	passDict = func(startInd int, sum AnagramBase, items itemList) (results []itemList) {
+	passDict = func(startInd int, items itemList) (results []itemList) {
 		for keyInd := startInd; keyInd < len(keys); keyInd++ {
 			item := dict[keys[keyInd]]
 
-			newSum := AddAnagrams(sum, item.Anagram)
+			ans := []AnagramBase{item.Anagram}
+			for _, it := range items {
+				ans = append(ans, it.Anagram)
+			}
 
-			if AnagramExceedsLimit(newSum, original) {
+			if AnagramListExceedsLimit(ans, original) {
 				continue
 			}
 
-			if AnagramEqual(newSum, original) {
+			if AnagramSumEqual(ans, original) {
 				res := itemList{}
 				res = append(res, items...)
 				res = append(res, item)
@@ -238,14 +345,14 @@ func FindAllAnagramsForLine(line string, dict Dictionary) []string {
 			}
 
 			newItems := append(items, item)
-			results = append(results, passDict(keyInd+1, newSum, newItems)...)
+			results = append(results, passDict(keyInd+1, newItems)...)
 		}
 
 		return
 	}
 
 	// Collect search results as item lists
-	itemResults := passDict(0, AnagramBase{}, nil)
+	itemResults := passDict(0, nil)
 
 	type wordList []string
 	var toWordLists func(wordList, itemList) []wordList
