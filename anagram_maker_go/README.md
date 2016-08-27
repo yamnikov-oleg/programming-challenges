@@ -49,3 +49,7 @@ Help, someone stole my purse
 # Implementation
 
 Written in __Go 1.6__.
+
+```
+go run maker.go input.txt dict_3634.txt
+```
