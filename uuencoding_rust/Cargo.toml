@@ -1,0 +1,11 @@
+[package]
+name = "uue"
+version = "0.1.0"
+authors = ["Oleg Yamnikov <bgeyts667@gmail.com>"]
+
+[dependencies]
+getopts = "0.2"
+
+[[bin]]
+name = "uue-tool"
+doc = false
