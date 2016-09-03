@@ -13,6 +13,24 @@ pub enum SyntaxErrorKind {
     ExpectedEnd,
 }
 
+impl ::std::fmt::Display for SyntaxErrorKind {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        use SyntaxErrorKind::*;
+        match self {
+            &UnexectedModeChar(c) => {
+                write!(f,
+                       "Unexpected symbol '{}', while parsing permissions mode",
+                       c)
+            }
+            &EmptyLine => f.write_str("Empty line"),
+            &ShortLine => f.write_str("Line is too short"),
+            &LongLine => f.write_str("Line is too long"),
+            &ExpectedBegin => f.write_str("Expected 'begin' keyword"),
+            &ExpectedEnd => f.write_str("Expected 'end' keyword"),
+        }
+    }
+}
+
 #[derive(Debug,Eq, PartialEq)]
 pub struct SyntaxError {
     pub kind: SyntaxErrorKind,
@@ -20,17 +38,34 @@ pub struct SyntaxError {
     pub ch: u32,
 }
 
+impl ::std::fmt::Display for SyntaxError {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{}\nat line {} char {}", self.kind, self.line, self.ch)
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
-    UnexectedEof,
+    UnexpectedEof,
     Io(io::Error),
     Syntax(SyntaxError),
+}
+
+impl ::std::fmt::Display for Error {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        use Error::*;
+        match self {
+            &UnexpectedEof => f.write_str("Unexpected end of file"),
+            &Io(ref e) => write!(f, "Error while reading/writing a file:\n{}", e),
+            &Syntax(ref e) => write!(f, "{}", e),
+        }
+    }
 }
 
 impl PartialEq for Error {
     fn eq(&self, other: &Error) -> bool {
         match (self, other) {
-            (&Error::UnexectedEof, &Error::UnexectedEof) => true,
+            (&Error::UnexpectedEof, &Error::UnexpectedEof) => true,
             (&Error::Syntax(ref lhs), &Error::Syntax(ref rhs)) if lhs == rhs => true,
             (&Error::Io(ref lhs), &Error::Io(ref rhs)) if lhs.kind() == rhs.kind() => true,
             _ => false,
@@ -43,7 +78,7 @@ impl From<io::Error> for Error {
         use std::io::ErrorKind::*;
 
         match err.kind() {
-            UnexpectedEof => Error::UnexectedEof,
+            UnexpectedEof => Error::UnexpectedEof,
             _ => Error::Io(err),
         }
     }
@@ -290,7 +325,7 @@ mod decoder_tests {
 
     #[test]
     fn get_head_begin_eof() {
-        get_head_invalid("begi", Error::UnexectedEof)
+        get_head_invalid("begi", Error::UnexpectedEof)
     }
 
     #[test]
@@ -305,12 +340,12 @@ mod decoder_tests {
 
     #[test]
     fn get_head_mode_eof() {
-        get_head_invalid("begin 64", Error::UnexectedEof)
+        get_head_invalid("begin 64", Error::UnexpectedEof)
     }
 
     #[test]
     fn get_head_name_eof() {
-        get_head_invalid("begin 644 name of", Error::UnexectedEof)
+        get_head_invalid("begin 644 name of", Error::UnexpectedEof)
     }
 
     #[test]
