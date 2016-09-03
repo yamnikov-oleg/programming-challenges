@@ -15,7 +15,16 @@ pub struct Encoder<T: Read> {
 }
 
 impl Encoder<io::Cursor<Vec<u8>>> {
-    /// Constructs an `Encoder`, which
+    /// Constructs an `Encoder`, which reads data from the buffer.
+    ///
+    /// #Usage:
+    ///
+    /// ```
+    /// use uue::Encoder;
+    ///
+    /// let buf = Vec::new();
+    /// let enc = Encoder::from_bytes("vfile.txt".to_string(), 0o644, buf);
+    /// ```
     pub fn from_bytes(name: String, mode: u32, buf: Vec<u8>) -> Self {
         Encoder {
             filename: name,
@@ -26,7 +35,7 @@ impl Encoder<io::Cursor<Vec<u8>>> {
 }
 
 impl Encoder<fs::File> {
-    /// Constructs an `Encoder` which read data from `file`, which's name is assumed to be `name`.
+    /// Constructs an `Encoder` which reads data from `file`, which's name is assumed to be `name`.
     ///
     /// Permissions mode is extracted from file's metadata.
     ///
