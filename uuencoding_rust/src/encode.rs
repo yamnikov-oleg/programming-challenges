@@ -3,22 +3,20 @@ use std::io;
 use std::io::prelude::*;
 use std::os::unix::fs::PermissionsExt;
 
-use super::*;
-
 /// Encodes any byte stream with uuencoding.
 #[derive(Debug)]
 pub struct Encoder<T: Read> {
     /// File name, displayed in the output header.
     pub filename: String,
     /// Permissions mode, displayed in the output header;
-    pub mode: PermMode,
+    pub mode: u32,
     /// Input stream, which is being encoded.
     pub reader: T,
 }
 
 impl Encoder<io::Cursor<Vec<u8>>> {
     /// Constructs an `Encoder`, which
-    pub fn from_bytes(name: String, mode: PermMode, buf: Vec<u8>) -> Self {
+    pub fn from_bytes(name: String, mode: u32, buf: Vec<u8>) -> Self {
         Encoder {
             filename: name,
             mode: mode,
@@ -49,7 +47,7 @@ impl Encoder<fs::File> {
     pub fn from_file(name: String, file: fs::File) -> Self {
         Encoder {
             filename: name,
-            mode: PermMode::new(file.metadata().unwrap().permissions().mode()),
+            mode: file.metadata().unwrap().permissions().mode(),
             reader: file,
         }
     }
@@ -57,7 +55,7 @@ impl Encoder<fs::File> {
 
 impl<T: Read> Encoder<T> {
     /// Constructs an `Encoder` with given fields.
-    pub fn new(name: String, mode: PermMode, read: T) -> Self {
+    pub fn new(name: String, mode: u32, read: T) -> Self {
         Encoder {
             filename: name,
             mode: mode,
@@ -70,16 +68,16 @@ impl<T: Read> Encoder<T> {
     /// To encode the data into `Vec<u8>`, pass it as `&mut`:
     ///
     /// ```
-    /// use uue::{PermMode, Encoder};
+    /// use uue::Encoder;
     ///
     /// let input = &[1u8, 2u8, 3u8][..];
     /// let mut output = Vec::<u8>::new();
     ///
-    /// let enc = Encoder::new("file.txt".to_string(), PermMode::from_parts(6, 4, 4), input);
+    /// let enc = Encoder::new("file.txt".to_string(), 0o644, input);
     /// enc.encode_to(&mut output);
     /// ```
     pub fn encode_to<W: Write>(mut self, mut dst: W) -> io::Result<()> {
-        try!(write!(dst, "begin {} {}\n", self.mode, self.filename));
+        try!(write!(dst, "begin {:o} {}\n", self.mode, self.filename));
 
         loop {
             let mut buf = [0u8; 45];
@@ -134,14 +132,12 @@ fn split_3b_in_4(bytes: &[u8]) -> [u8; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::PermMode;
-
     use std::str;
 
     #[test]
     fn encoding_cat() {
         let filename = "cat.txt".to_string();
-        let mode = PermMode::from_parts(6, 4, 4);
+        let mode = 0o644;
         let input = Vec::from("Cat");
         let mut output = Vec::new();
 
@@ -155,7 +151,7 @@ mod tests {
     #[test]
     fn encoding_text() {
         let filename = "file.txt".to_string();
-        let mode = PermMode::from_parts(4, 4, 4);
+        let mode = 0o444;
         let input = Vec::from("I feel very strongly about you doing duty. Would you give me a \
                                little more documentation about your reading in French? I am glad \
                                you are happy — but I never believe much in happiness. I never \
