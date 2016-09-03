@@ -19,3 +19,6 @@
 
 mod encode;
 pub use encode::*;
+
+mod decode;
+pub use decode::*;

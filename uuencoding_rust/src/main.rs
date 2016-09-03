@@ -3,6 +3,7 @@ use getopts::Options;
 
 use std::env;
 use std::fs;
+use std::os::unix::fs::OpenOptionsExt;
 use std::process;
 
 extern crate uue;
@@ -45,22 +46,33 @@ fn split_args(args: Vec<String>) -> Result<(Mode, String), String> {
     Ok((mode, fname))
 }
 
+fn encode_file(path: &str) {
+    let infile = fs::File::open(path).unwrap();
+    let enc = uue::Encoder::from_file(path.to_string(), infile);
+
+    let mut out = fs::File::create(&format!("{}.uu", path)).unwrap();
+
+    enc.encode_to(&mut out).unwrap();
+}
+
+fn decode_file(path: &str) {
+    let mut infile = fs::File::open(path).unwrap();
+    let mut dec = uue::Decoder::new(&mut infile);
+
+    let (perm, fname): (u32, String) =
+        dec.head_ref().map(|(p, f)| (p.to_owned(), f.to_owned())).unwrap();
+
+    let mut options = fs::OpenOptions::new();
+    let mut out = options.write(true).create(true).mode(perm).open(fname).unwrap();
+
+    dec.decode_to(&mut out).unwrap();
+}
+
 fn main() {
     let args = env::args().collect();
-
-    let (_, filename) = split_args(args).unwrap_or_else(|err| {
-        println!("{}", err);
-        process::exit(1);
-    });
-
-    let enc = match fs::File::open(&filename) {
-        Ok(f) => uue::Encoder::from_file(filename.clone(), f),
-        Err(e) => {
-            println!("Error when opening {}:\n{}", filename, e);
-            process::exit(1);
-        }
-    };
-
-    let mut out = fs::File::create(&format!("{}.uu", filename)).unwrap();
-    enc.encode_to(&mut out).unwrap();
+    let (mode, path) = split_args(args).unwrap();
+    match mode {
+        Mode::Encode => encode_file(&path),
+        Mode::Decode => decode_file(&path),
+    }
 }
