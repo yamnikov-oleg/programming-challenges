@@ -135,7 +135,11 @@ Consider submitting it to [/r/dailyprogrammer_ideas](https://www.reddit.com/r/da
 Written in __Rust 1.11__
 
 ```
-cargo run -- -e -i input.txt
+cargo run -- -e input.txt
+```
+
+```
+cargo run -- -d input.txt.uu
 ```
 
 This is actually my first ever program in Rust. The code might be ugly,

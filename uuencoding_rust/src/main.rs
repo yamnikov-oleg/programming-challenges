@@ -9,12 +9,6 @@ use std::process;
 
 extern crate uue;
 
-#[derive(Debug)]
-enum Mode {
-    Encode,
-    Decode,
-}
-
 enum CmdError {
     SplitArgs(String),
     Io(io::Error),
@@ -56,37 +50,24 @@ impl std::fmt::Display for CmdError {
     }
 }
 
-fn split_args(args: Vec<String>) -> Result<(Mode, String), CmdError> {
+struct Args {
+    to_encode: Vec<String>,
+    to_decode: Vec<String>,
+}
+
+fn split_args(args: Vec<String>) -> Args {
     let exec = &args[0];
     let args = &args[1..];
 
     let mut opts = Options::new();
-    opts.optflag("e", "", "encode input file");
-    opts.optflag("d", "", "decode input file");
-    opts.optopt("i", "input", "input file path", "PATH");
-
-    let usage = opts.usage(&format!("Usage: {} -d|-e -i PATH", exec));
-    let make_err = |desc: &str| -> Result<(Mode, String), CmdError> {
-        Err(CmdError::SplitArgs(format!("{}\n\n{}", desc, usage)))
-    };
+    opts.optmulti("e", "encode", "encode a file", "PATH");
+    opts.optmulti("d", "decode", "decode a file", "PATH");
 
     let matches: getopts::Matches = opts.parse(args).unwrap();
-
-    let enc = matches.opt_present("e");
-    let dec = matches.opt_present("d");
-    let mode = match (enc, dec) {
-        (true, true) => return make_err("Flags -e and -d can't be present both"),
-        (false, false) => return make_err("Specify at least one flag: -e or -d"),
-        (true, _) => Mode::Encode,
-        (_, true) => Mode::Decode,
-    };
-
-    let fname = match matches.opt_str("i") {
-        Some(fname) => fname,
-        None => return make_err("Please, specify input file with -i option."),
-    };
-
-    Ok((mode, fname))
+    Args {
+        to_encode: matches.opt_strs("encode"),
+        to_decode: matches.opt_strs("decode"),
+    }
 }
 
 fn encode_file(path: &str) -> Result<(), CmdError> {
@@ -113,18 +94,19 @@ fn decode_file(path: &str) -> Result<(), CmdError> {
     Ok(())
 }
 
-fn _main() -> Result<(), CmdError> {
-    let args = env::args().collect();
-    let (mode, path) = try!(split_args(args));
-    match mode {
-        Mode::Encode => try!(encode_file(&path)),
-        Mode::Decode => try!(decode_file(&path)),
-    };
+fn run() -> Result<(), CmdError> {
+    let args = split_args(env::args().collect());
+    for path in args.to_encode {
+        try!(encode_file(&path));
+    }
+    for path in args.to_decode {
+        try!(decode_file(&path))
+    }
     Ok(())
 }
 
 fn main() {
-    match _main() {
+    match run() {
         Err(e) => {
             println!("{}", e);
             process::exit(1);
