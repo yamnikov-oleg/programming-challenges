@@ -1,0 +1,6 @@
+[package]
+name = "weave"
+version = "0.1.0"
+authors = ["Oleg Yamnikov <bgeyts667@gmail.com>"]
+
+[dependencies]
