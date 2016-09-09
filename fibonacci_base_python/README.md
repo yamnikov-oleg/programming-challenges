@@ -145,7 +145,7 @@ F 10110110100111001
 
 # Implementation
 
-Written in `Python 3.5`.
+Written in _Python 3.5_.
 
 I made the converter into a webapp, because besides problem solving I wanted
 to try out Docker containers.
@@ -153,4 +153,10 @@ to try out Docker containers.
 ```
 pip install -r ./requirements.txt
 python main.py
+```
+
+Runnable with _Docker 1.12_ and _Docker Compose 1.8_:
+
+```
+docker-compose up
 ```
