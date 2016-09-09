@@ -1,7 +1,7 @@
 # Fibonacci base
 
-From (/r/dailyprogrammer)[https://www.reddit.com/r/dailyprogrammer/].
-(Source link)[https://www.reddit.com/r/dailyprogrammer/comments/5196fi/20160905_challenge_282_easy_unusual_bases/].
+From [/r/dailyprogrammer](https://www.reddit.com/r/dailyprogrammer/).
+[Source link](https://www.reddit.com/r/dailyprogrammer/comments/5196fi/20160905_challenge_282_easy_unusual_bases/).
 
 ## Description
 
