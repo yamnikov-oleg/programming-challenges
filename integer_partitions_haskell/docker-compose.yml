@@ -1,0 +1,7 @@
+version: '2'
+services:
+  intpart:
+    build: .
+    container_name: intpart_shell
+    volumes:
+      - .:/src
