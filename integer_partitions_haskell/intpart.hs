@@ -48,3 +48,34 @@ partProds n = nodups $ sort $ map (foldl (*) 1) (partitions n)
 assertPartProds res n = assertEqual ("for (partProds "++(show n)++")") res (partProds n)
 testPartProds = test [ assertPartProds [1,2,3,4,5,6] 5,
                        assertPartProds [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 18] 8 ]
+
+-- |Returns range between maximum and minimum elements of a list.
+range :: (Num a, Ord a) => [a] -> a
+range xs = maximum xs - minimum xs
+
+-- |Returns average value of a list.
+avg :: (Real a, Fractional b) => [a] -> b
+avg xs = realToFrac (sum xs) / genericLength xs
+
+-- |Returns median value of a list.
+median :: (Real a, Ord a, Fractional b) => [a] -> b
+median xs
+  | odd len = realToFrac $ sorted !! mid
+  | even len = (/2) $ realToFrac $ sorted !! mid + sorted !! (mid - 1)
+  where len = length xs
+        mid = quot len 2
+        sorted = sort xs
+
+data ListStats a b =
+  ListStats { prange :: a
+            , pavg :: b
+            , pmed :: b }
+
+instance (Show a, Show b) => Show (ListStats a b) where
+  show s = "Range: " ++ (show $ prange s) ++
+           "; Average: " ++ (show $ pavg s) ++
+           "; Median: " ++ (show $ pmed s) ++ "."
+
+-- |Computes list statistics.
+stats :: (Real a, Ord a, Fractional b) => [a] -> ListStats a b
+stats l = ListStats { prange = range l, pavg = avg l, pmed = median l }
