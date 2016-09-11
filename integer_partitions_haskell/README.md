@@ -61,6 +61,8 @@ Test with `ghci`:
 $ ghci intpart
 *Main> partitions 4
 [[4],[1,3],[2,2],[1,1,2],[1,1,1,1]]
+*Main> partProds 4
+[1,2,3,4]
 ```
 
 Or with `Docker`:
