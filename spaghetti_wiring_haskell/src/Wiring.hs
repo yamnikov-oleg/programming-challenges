@@ -1,0 +1,121 @@
+module Wiring
+    ( Point (..)
+    , Path (..)
+    , MapSize (..)
+    , Solution (..)
+    , Direction (..)
+    , pathsBetweenPoints
+    , pathsConflict
+    , anyPathsConflict
+    , wireup
+    , WireMap (..)
+    , cleanMap
+    , toMap
+    , toString
+    ) where
+
+import           Data.List (intercalate)
+
+newtype Point = Point (Int, Int)
+                deriving (Show, Eq)
+
+newtype Path = Path [Point]
+               deriving (Show, Eq)
+
+newtype MapSize = MapSize (Int, Int)
+                  deriving (Show, Eq)
+
+newtype Solution = Solution [Path]
+                   deriving (Show, Eq)
+
+data Direction = DirUp
+               | DirRight
+               | DirDown
+               | DirLeft
+               deriving (Show, Eq)
+
+width :: MapSize -> Int
+width (MapSize (w, _)) = w
+
+height :: MapSize -> Int
+height (MapSize (_, h)) = h
+
+movePoint :: Direction -> Point -> Point
+movePoint DirUp (Point (x, y))    = Point (x, y-1)
+movePoint DirRight (Point (x, y)) = Point (x+1, y)
+movePoint DirDown (Point (x, y))  = Point (x, y+1)
+movePoint DirLeft (Point (x, y))  = Point (x-1, y)
+
+inBound :: Point -> MapSize -> Bool
+inBound (Point (x, y)) size = x >= 0 &&
+                              x < width size &&
+                              y >= 0 &&
+                              y < height size
+
+pathsBetweenPoints :: MapSize -> (Point, Point) -> [Point] -> [Path]
+pathsBetweenPoints size (from, to) walkedPoints
+  | from == to = [Path [to]]
+  | otherwise = walk DirUp ++ walk DirRight ++ walk DirDown ++ walk DirLeft
+  where walk dir = map (\(Path points) -> Path (from:points)) $ walkThrough $ movePoint dir from
+        walkThrough point = if not (point `inBound` size) ||
+                               (point /= to && point `elem` walkedPoints) ||
+                               point == from
+                              then []
+                              else pathsBetweenPoints size (point, to) (from:walkedPoints)
+
+pathsConflict :: Path -> Path -> Bool
+pathsConflict (Path []) _ = False
+pathsConflict (Path (pntA:pntsA)) (Path pntsB)
+  = pntA `elem` pntsB || pathsConflict (Path pntsA) (Path pntsB)
+
+anyPathsConflict :: [Path] -> Bool
+anyPathsConflict []  = False
+anyPathsConflict [p] = False
+anyPathsConflict (p:ps)
+  = any (pathsConflict p) ps || anyPathsConflict ps
+
+wireup' :: MapSize -> [(Point, Point)] -> [Solution]
+wireup' size [(pntA, pntB)] = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) []
+wireup' size ((from, to):pnts)
+  = do Solution derivSolution <- wireup' size pnts
+       curPath <- pathsBetweenPoints size (from, to) (concatMap (\(pa, pb) -> [pa, pb]) pnts)
+       if anyPathsConflict (curPath:derivSolution)
+         then []
+         else [Solution (curPath:derivSolution)]
+
+wireup :: MapSize -> [(Point, Point)] -> Maybe Solution
+wireup size pnts = listToMaybe $ wireup' size pnts
+  where listToMaybe []    = Nothing
+        listToMaybe (s:_) = Just s
+
+newtype WireMap = WireMap [[Int]]
+                  deriving (Show, Eq)
+
+cleanMap :: MapSize -> WireMap
+cleanMap size
+  = WireMap $ map (const $ map (const 0) [0..width size - 1]) [0..height size - 1]
+
+setListElement :: Int -> [Int] -> Int -> [Int]
+setListElement _ [] _         = []
+setListElement val (_:xs) 0   = val:xs
+setListElement val (x:xs) ind = x : setListElement val xs (ind-1)
+
+setMapCell :: Int -> WireMap -> Point -> WireMap
+setMapCell val (WireMap cells) (Point (row, col))
+  = WireMap $ zipWith setIfIndex [0..] cells
+    where setIfIndex ind list
+            | ind == row = setListElement val list col
+            | otherwise = list
+
+toMap :: MapSize -> Solution -> WireMap
+toMap size (Solution paths)
+  = foldl markPathOnMap (cleanMap size) $ zip [1..] paths
+  where markPathOnMap wmap (i, Path pnts)
+          = foldl (setMapCell i) wmap pnts
+
+intToLetter :: Int -> Char
+intToLetter 0 = '.'
+intToLetter i = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" !! i
+
+toString :: WireMap -> String
+toString (WireMap cells) = intercalate "\n" $ map (map intToLetter) cells
