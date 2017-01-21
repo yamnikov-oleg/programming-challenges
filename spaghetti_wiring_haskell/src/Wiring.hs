@@ -53,13 +53,26 @@ inBound (Point (x, y)) size = x >= 0 &&
 pathsBetweenPoints :: MapSize -> (Point, Point) -> [Point] -> [Path]
 pathsBetweenPoints size (from, to) ignoredPoints
   | from == to = [Path [to]]
-  | otherwise = walk DirUp ++ walk DirRight ++ walk DirDown ++ walk DirLeft
+  | otherwise = concatMap walk $ dirs from to
   where walk dir = map (\(Path points) -> Path (from:points)) $ walkThrough $ movePoint dir from
         walkThrough point = if not (point `inBound` size) ||
                                point == from ||
                                (point /= to && point `elem` ignoredPoints)
                               then []
                               else pathsBetweenPoints size (point, to) (from:ignoredPoints)
+        dirs (Point (x1, y1)) (Point (x2, y2))
+          | dx >= 0 && dy >= 0 && adx >= ady = [DirRight, DirDown, DirUp, DirLeft]
+          | dx >= 0 && dy >= 0 && ady > adx = [DirDown, DirRight, DirLeft, DirUp]
+          | dx >= 0 && dy <= 0 && adx >= ady = [DirRight, DirUp, DirDown, DirLeft]
+          | dx >= 0 && dy <= 0 && ady > adx = [DirUp, DirRight, DirLeft, DirDown]
+          | dx <= 0 && dy >= 0 && adx >= ady = [DirLeft, DirDown, DirUp, DirRight]
+          | dx <= 0 && dy >= 0 && ady > adx = [DirDown, DirLeft, DirRight, DirUp]
+          | dx <= 0 && dy <= 0 && adx >= ady = [DirLeft, DirUp, DirDown, DirRight]
+          | dx <= 0 && dy <= 0 && ady > adx = [DirUp, DirLeft, DirRight, DirDown]
+          where dx = x2 - x1
+                dy = y2 - y1
+                adx = abs dx
+                ady = abs dy
 
 wireup' :: MapSize -> [(Point, Point)] -> [Point] -> [Solution]
 wireup' size [(pntA, pntB)] ignore = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) ignore
