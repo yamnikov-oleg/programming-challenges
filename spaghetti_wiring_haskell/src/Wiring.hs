@@ -44,22 +44,26 @@ movePoint DirRight (Point (x, y)) = Point (x+1, y)
 movePoint DirDown (Point (x, y))  = Point (x, y+1)
 movePoint DirLeft (Point (x, y))  = Point (x-1, y)
 
+distance :: Point -> Point -> Int
+distance (Point (x1, y1)) (Point (x2, y2)) = abs (x1-x2) + abs (y1-y2)
+
 inBound :: Point -> MapSize -> Bool
 inBound (Point (x, y)) size = x >= 0 &&
                               x < width size &&
                               y >= 0 &&
                               y < height size
 
-pathsBetweenPoints :: MapSize -> (Point, Point) -> [Point] -> [Path]
-pathsBetweenPoints size (from, to) ignoredPoints
+pathsBetweenPoints :: MapSize -> (Point, Point) -> [Point] -> [Point] -> [Path]
+pathsBetweenPoints size (from, to) ignoredPoints walkedPoints
   | from == to = [Path [to]]
   | otherwise = concatMap walk $ dirs from to
   where walk dir = map (\(Path points) -> Path (from:points)) $ walkThrough $ movePoint dir from
         walkThrough point = if not (point `inBound` size) ||
                                point == from ||
-                               (point /= to && point `elem` ignoredPoints)
+                               (point /= to && point `elem` ignoredPoints) ||
+                               (point /= to && any (\p -> distance p point <= 1 ) walkedPoints)
                               then []
-                              else pathsBetweenPoints size (point, to) (from:ignoredPoints)
+                              else pathsBetweenPoints size (point, to) ignoredPoints (from:walkedPoints)
         dirs (Point (x1, y1)) (Point (x2, y2))
           | dx >= 0 && dy >= 0 && adx >= ady = [DirRight, DirDown, DirUp, DirLeft]
           | dx >= 0 && dy >= 0 && ady > adx = [DirDown, DirRight, DirLeft, DirUp]
@@ -75,10 +79,10 @@ pathsBetweenPoints size (from, to) ignoredPoints
                 ady = abs dy
 
 wireup' :: MapSize -> [(Point, Point)] -> [Point] -> [Solution]
-wireup' size [(pntA, pntB)] ignore = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) ignore
+wireup' size [(pntA, pntB)] ignore = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) ignore []
 wireup' size ((from, to):pnts) ignore
   = do Solution derivSolution <- wireup' size pnts (from:to:ignore)
-       curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution ++ ignore)
+       curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution ++ ignore) []
        return (Solution (curPath:derivSolution))
     where
       allPoints = concatMap (\(Path pnts) -> pnts)
