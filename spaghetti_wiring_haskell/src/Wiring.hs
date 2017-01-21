@@ -53,15 +53,15 @@ inBound (Point (x, y)) size = x >= 0 &&
                               y < height size
 
 pathsBetweenPoints :: MapSize -> (Point, Point) -> [Point] -> [Path]
-pathsBetweenPoints size (from, to) walkedPoints
+pathsBetweenPoints size (from, to) ignoredPoints
   | from == to = [Path [to]]
   | otherwise = walk DirUp ++ walk DirRight ++ walk DirDown ++ walk DirLeft
   where walk dir = map (\(Path points) -> Path (from:points)) $ walkThrough $ movePoint dir from
         walkThrough point = if not (point `inBound` size) ||
-                               (point /= to && point `elem` walkedPoints) ||
+                               (point /= to && point `elem` ignoredPoints) ||
                                point == from
                               then []
-                              else pathsBetweenPoints size (point, to) (from:walkedPoints)
+                              else pathsBetweenPoints size (point, to) (from:ignoredPoints)
 
 pathsConflict :: Path -> Path -> Bool
 pathsConflict (Path []) _ = False
@@ -78,10 +78,12 @@ wireup' :: MapSize -> [(Point, Point)] -> [Solution]
 wireup' size [(pntA, pntB)] = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) []
 wireup' size ((from, to):pnts)
   = do Solution derivSolution <- wireup' size pnts
-       curPath <- pathsBetweenPoints size (from, to) (concatMap (\(pa, pb) -> [pa, pb]) pnts)
+       curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution)
        if anyPathsConflict (curPath:derivSolution)
          then []
          else [Solution (curPath:derivSolution)]
+    where
+      allPoints = concatMap (\(Path pnts) -> pnts)
 
 wireup :: MapSize -> [(Point, Point)] -> Maybe Solution
 wireup size pnts = listToMaybe $ wireup' size pnts

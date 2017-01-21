@@ -134,7 +134,4 @@ $ stack exec spaghetti-wiring-exe input1.txt output1.txt
 $ stack exec spaghetti-wiring-exe input2.txt output2.txt
 ```
 
-__Be careful__ with second sample: it takes up a lot of memory and may hang your
-computer.
-
 I did not implement the bonus task though.
