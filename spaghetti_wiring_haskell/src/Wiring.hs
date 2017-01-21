@@ -65,7 +65,7 @@ wireup' :: MapSize -> [(Point, Point)] -> [Point] -> [Solution]
 wireup' size [(pntA, pntB)] ignore = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) ignore
 wireup' size ((from, to):pnts) ignore
   = do Solution derivSolution <- wireup' size pnts (from:to:ignore)
-       curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution)
+       curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution ++ ignore)
        return (Solution (curPath:derivSolution))
     where
       allPoints = concatMap (\(Path pnts) -> pnts)
