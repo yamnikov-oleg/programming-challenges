@@ -61,17 +61,17 @@ pathsBetweenPoints size (from, to) ignoredPoints
                               then []
                               else pathsBetweenPoints size (point, to) (from:ignoredPoints)
 
-wireup' :: MapSize -> [(Point, Point)] -> [Solution]
-wireup' size [(pntA, pntB)] = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) []
-wireup' size ((from, to):pnts)
-  = do Solution derivSolution <- wireup' size pnts
+wireup' :: MapSize -> [(Point, Point)] -> [Point] -> [Solution]
+wireup' size [(pntA, pntB)] ignore = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) ignore
+wireup' size ((from, to):pnts) ignore
+  = do Solution derivSolution <- wireup' size pnts (from:to:ignore)
        curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution)
        return (Solution (curPath:derivSolution))
     where
       allPoints = concatMap (\(Path pnts) -> pnts)
 
 wireup :: MapSize -> [(Point, Point)] -> Maybe Solution
-wireup size pnts = listToMaybe $ wireup' size pnts
+wireup size pnts = listToMaybe $ wireup' size pnts []
   where listToMaybe []    = Nothing
         listToMaybe (s:_) = Just s
 
