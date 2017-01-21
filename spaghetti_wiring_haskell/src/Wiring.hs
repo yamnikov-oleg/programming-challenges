@@ -5,8 +5,6 @@ module Wiring
     , Solution (..)
     , Direction (..)
     , pathsBetweenPoints
-    , pathsConflict
-    , anyPathsConflict
     , wireup
     , WireMap (..)
     , cleanMap
@@ -58,30 +56,17 @@ pathsBetweenPoints size (from, to) ignoredPoints
   | otherwise = walk DirUp ++ walk DirRight ++ walk DirDown ++ walk DirLeft
   where walk dir = map (\(Path points) -> Path (from:points)) $ walkThrough $ movePoint dir from
         walkThrough point = if not (point `inBound` size) ||
-                               (point /= to && point `elem` ignoredPoints) ||
-                               point == from
+                               point == from ||
+                               (point /= to && point `elem` ignoredPoints)
                               then []
                               else pathsBetweenPoints size (point, to) (from:ignoredPoints)
-
-pathsConflict :: Path -> Path -> Bool
-pathsConflict (Path []) _ = False
-pathsConflict (Path (pntA:pntsA)) (Path pntsB)
-  = pntA `elem` pntsB || pathsConflict (Path pntsA) (Path pntsB)
-
-anyPathsConflict :: [Path] -> Bool
-anyPathsConflict []  = False
-anyPathsConflict [p] = False
-anyPathsConflict (p:ps)
-  = any (pathsConflict p) ps || anyPathsConflict ps
 
 wireup' :: MapSize -> [(Point, Point)] -> [Solution]
 wireup' size [(pntA, pntB)] = map (\p -> Solution [p]) $ pathsBetweenPoints size (pntA, pntB) []
 wireup' size ((from, to):pnts)
   = do Solution derivSolution <- wireup' size pnts
        curPath <- pathsBetweenPoints size (from, to) (allPoints derivSolution)
-       if anyPathsConflict (curPath:derivSolution)
-         then []
-         else [Solution (curPath:derivSolution)]
+       return (Solution (curPath:derivSolution))
     where
       allPoints = concatMap (\(Path pnts) -> pnts)
 
