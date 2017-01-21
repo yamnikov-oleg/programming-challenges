@@ -101,7 +101,7 @@ setListElement val (_:xs) 0   = val:xs
 setListElement val (x:xs) ind = x : setListElement val xs (ind-1)
 
 setMapCell :: Int -> WireMap -> Point -> WireMap
-setMapCell val (WireMap cells) (Point (row, col))
+setMapCell val (WireMap cells) (Point (col, row))
   = WireMap $ zipWith setIfIndex [0..] cells
     where setIfIndex ind list
             | ind == row = setListElement val list col
