@@ -115,7 +115,7 @@ toMap size (Solution paths)
 
 intToLetter :: Int -> Char
 intToLetter 0 = '.'
-intToLetter i = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" !! i
+intToLetter i = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" !! (i-1)
 
 toString :: WireMap -> String
 toString (WireMap cells) = intercalate "\n" $ map (map intToLetter) cells
