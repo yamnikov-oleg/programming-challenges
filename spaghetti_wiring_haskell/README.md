@@ -1,5 +1,8 @@
 # Spaghetti Wiring
 
+From [/r/dailyprogrammer](https://www.reddit.com/r/dailyprogrammer/).
+[Source link](https://www.reddit.com/r/dailyprogrammer/comments/5cetzo/20161111_challenge_291_hard_spaghetti_wiring/).
+
 ## Description
 
 <p>Eric the Electrician has a problem. He has been told to connect a set of ports on a flat surface using some cables, but there's a problem: the cables are carrying signals that interfere with each other. They must not cross. Since the locations of the ports are all over the place, this poses a significant challenge.</p>
