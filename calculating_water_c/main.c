@@ -6,11 +6,15 @@
 #define TRUE 1
 #define FALSE 0
 
+// Structure of a water container.
 typedef struct container_t {
+  // Input array: list of height values.
   unsigned char* columns;
+  // Number of values in the array above.
   size_t column_cnt;
 } container_t;
 
+// Allocates a new container with given number of columns.
 container_t* container_create(size_t col_cnt) {
   container_t* ctr = malloc(sizeof(container_t));
   ctr->columns = malloc(sizeof(unsigned char) * col_cnt);
@@ -18,23 +22,29 @@ container_t* container_create(size_t col_cnt) {
   return ctr;
 }
 
+// Reallocates a container to append a new column onto the right side.
 void container_add_column(container_t* ctr) {
   ctr->column_cnt++;
   ctr->columns = realloc(ctr->columns, sizeof(unsigned char) * ctr->column_cnt);
 }
 
+// Free a container.
 void container_destroy(container_t* ctr) {
   free(ctr->columns);
   free(ctr);
 }
 
+// Maximum length on the input.
 #define INPUT_BUFFER_SIZE 255
 
+// Error codes for input-parsing procedure.
 #define PARSE_UNDEFINED -1
 #define PARSE_SUCCESS 0
 #define PARSE_EMPTY 1
 #define PARSE_INVALID_NUMBER 2
 
+// Parses user input and stores parsed values into the `ctr`.
+// If `ctr` has not enough columns, they will allocated with container_add_column.
 int parse_container(char *input, container_t* ctr) {
   size_t input_len = strlen(input);
   int ret_code = PARSE_UNDEFINED;
@@ -43,9 +53,13 @@ int parse_container(char *input, container_t* ctr) {
   size_t element_index = 0;
   unsigned char element;
 
+  // Empty element buffer string.
   element_buf[0] = '\0';
 
+  // Walk through input chars.
   for (size_t i = 0; i < input_len; i++) {
+    // If char is a space - parse element buffer and append the element to
+    // the container columns.
     if (input[i] == ' ') {
       if (strlen(element_buf) == 0) continue;
 
@@ -60,6 +74,7 @@ int parse_container(char *input, container_t* ctr) {
       ctr->columns[element_index] = element;
       element_index++;
       element_buf[0] = '\0';
+    // If char is not space - append it to element buffer.
     } else {
       size_t buf_len = strlen(element_buf);
       element_buf[buf_len] = input[i];
@@ -67,6 +82,8 @@ int parse_container(char *input, container_t* ctr) {
     }
   }
 
+  // If after finishing the char walk the element buffer is not empty -
+  // parse the last elemnt as usual.
   if (strlen(element_buf) != 0) {
     int result = sscanf(element_buf, "%hhu", &element);
     if (result < 1) {
@@ -92,6 +109,8 @@ free_and_return:
   return ret_code;
 }
 
+// Returns TRUE if the cell of the container does not contain "container block".
+// It is safe to pass column index larger than columns count.
 int container_is_cell_empty(container_t* ctr, unsigned char row, size_t col) {
   if (col >= ctr->column_cnt)
     return TRUE;
@@ -102,6 +121,7 @@ int container_is_cell_empty(container_t* ctr, unsigned char row, size_t col) {
   return FALSE;
 }
 
+// Calculates the capacity of a given row of container.
 int container_get_row_capacity(container_t* ctr, unsigned char row) {
   size_t left_border = -1;
   for (size_t i = 0; i < ctr->column_cnt; i++) {
@@ -133,6 +153,7 @@ int container_get_row_capacity(container_t* ctr, unsigned char row) {
   return capacity;
 }
 
+// Finds the height of a container (maximum column height).
 unsigned char container_get_height(container_t* ctr) {
   unsigned char height = 0;
   for (size_t i = 0; i < ctr->column_cnt; i++) {
@@ -143,6 +164,7 @@ unsigned char container_get_height(container_t* ctr) {
   return height;
 }
 
+// Calculates full water capacity of a container.
 int container_get_capacity(container_t* ctr) {
   int capacity = 0;
   unsigned char height = container_get_height(ctr);
@@ -152,6 +174,7 @@ int container_get_capacity(container_t* ctr) {
   return capacity;
 }
 
+// Prints the container contents as blocks of ' ' and 'X' into the stdout.
 void container_print(container_t* ctr) {
   unsigned char height = container_get_height(ctr);
   for (unsigned char row = height-1; row >= 0; row--) {
@@ -167,6 +190,7 @@ void container_print(container_t* ctr) {
   }
 }
 
+// Runs assertions to test the code.
 void test() {
   container_t* ctr = container_create(0);
 
