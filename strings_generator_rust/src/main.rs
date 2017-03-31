@@ -1,8 +1,32 @@
 extern crate clap;
 
+mod regexp;
 mod tokens;
+mod syntax;
 
 use clap::{Arg, App};
+
+fn print_re(re: &regexp::Regexp) {
+    use regexp::Item;
+    for item in re.0.iter() {
+        match *item {
+            Item::Symbol(ch) => print!("{} > ", ch),
+            Item::Range(ref rng) => {
+                print!("[ ");
+                for ch in rng {
+                    print!("{} | ", ch);
+                }
+                print!("$ ] > ");
+            }
+            Item::Group(ref inner) => {
+                print!("( ");
+                print_re(inner);
+                print!(") ");
+            }
+        }
+    }
+    print!("$ ");
+}
 
 fn main() {
     let matches = App::new("Strings Generator")
@@ -16,15 +40,7 @@ fn main() {
     let regexp = matches.value_of("REGEXP").unwrap();
 
     let tokens = tokens::split_into_tokens(&regexp).unwrap();
-    use tokens::Token;
-    for t in tokens {
-        match t {
-            Token::Symbol(ch) => println!("Symbol {}", ch),
-            Token::StartGroup => println!("( StartGroup"),
-            Token::EndGroup => println!(") EndGroup"),
-            Token::StartRange => println!("[ StartRange"),
-            Token::EndRange => println!("] EndRange"),
-            Token::RangeHyphen => println!("- RangeHyphen"),
-        }
-    }
+    let ast = syntax::parse(&tokens).unwrap();
+    print_re(&ast);
+    println!();
 }
