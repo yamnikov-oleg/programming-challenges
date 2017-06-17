@@ -65,9 +65,6 @@ defaultConfig = Config
   , configBitmapHeight = 5
   }
 
-black :: RGB
-black = RGB 0 0 0
-
 genBounded :: Integer -> Username -> Integer
 genBounded bound =
   (`mod` bound) .
