@@ -1,6 +1,9 @@
 module Main where
 
+import           Data.Array         (Array, bounds, listArray, (!))
 import           Data.Char          (ord)
+import           Data.Ix            (range)
+import           Data.List          (intercalate)
 import           Data.Word          (Word8)
 import           System.Environment (getArgs)
 
@@ -17,9 +20,40 @@ type Angle = Integer
 data HSL = HSL Angle Double Double
   deriving (Show, Eq)
 
+-- Simetric bit map.
+--
+-- If it contains elements:
+-- [ [ True, False ]
+-- , [ True, False ]
+-- , [ False, True ]
+-- ]
+--
+-- then it is displayed that way (mirrored by right edge):
+-- "X X"
+-- "X X"
+-- " X "
+newtype SimBitMap = SimBitMap (Array (Integer, Integer) Bool)
+  deriving (Eq)
+
+instance Show SimBitMap where
+  show (SimBitMap arr) =
+    intercalate "\n" $
+    map (mirror [] . showRow arr (minj, maxj)) $
+    range (mini, maxi)
+    where
+      ((mini, minj), (maxi, maxj)) = bounds arr
+      mirror acc []     = []
+      mirror acc [x]    = x:acc
+      mirror acc (x:xs) = x : mirror (x:acc) xs
+      showRow arr (minj, maxj) i =
+        concatMap (\ind -> if arr ! ind then "X" else " ") $
+        range ((i, minj), (i, maxj))
+
 data Config = Config
-  { configSaturation :: Double
-  , configLightness  :: Double
+  { configSaturation      :: Double
+  , configLightness       :: Double
+  , configBitmapHalfWidth :: Integer
+  , configBitmapHeight    :: Integer
   }
   deriving (Show, Eq)
 
@@ -27,13 +61,21 @@ defaultConfig :: Config
 defaultConfig = Config
   { configSaturation = 0.5
   , configLightness = 0.5
+  , configBitmapHalfWidth = 3
+  , configBitmapHeight = 5
   }
 
 black :: RGB
 black = RGB 0 0 0
 
+genBounded :: Integer -> Username -> Integer
+genBounded bound =
+  (`mod` bound) .
+  fromIntegral .
+  foldl (\angle char -> angle * fromIntegral (ord char) + 1) (bound `div` 2)
+
 genHue :: Username -> Angle
-genHue = (`mod` 360) . fromIntegral . foldl (\angle char -> angle*ord char + 1) 180
+genHue = genBounded 360
 
 genHSL :: Config -> Username -> HSL
 genHSL cfg name = HSL hue sat lig
@@ -80,9 +122,24 @@ hslToRgb hsl = RGB r g b
 genColor :: Config -> Username -> RGB
 genColor cfg name = hslToRgb $ genHSL cfg name
 
+bitseq :: Integer -> Integer -> [Bool]
+bitseq 0 _     = []
+bitseq len num = (num `mod` 2 == 1) : bitseq (len-1) (num `div` 2)
+
+bitMapFromNum :: (Integer, Integer) -> Integer -> SimBitMap
+bitMapFromNum (hwid, hei) num =
+  SimBitMap $ listArray ((1, 1), (hei, hwid)) $ bitseq (hwid * hei) num
+
+genBitMap :: Config -> Username -> SimBitMap
+genBitMap cfg = bitMapFromNum (hwid, hei) . genBounded (2^(hwid*hei))
+  where
+    hwid = configBitmapHalfWidth cfg
+    hei = configBitmapHeight cfg
+
 main :: IO ()
 main = do
   args <- getArgs
   let username = unwords args
   let config = defaultConfig
   print $ genColor config username
+  print $ genBitMap config username
