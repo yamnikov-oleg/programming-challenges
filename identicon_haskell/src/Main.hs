@@ -38,22 +38,30 @@ newtype SimBitMap = SimBitMap (Array (Integer, Integer) Bool)
 instance Show SimBitMap where
   show (SimBitMap arr) =
     intercalate "\n" $
-    map (mirror [] . showRow arr (minj, maxj)) $
+    map (mirror (odd (maxi-mini+1)) [] . showRow arr (minj, maxj)) $
     range (mini, maxi)
     where
       ((mini, minj), (maxi, maxj)) = bounds arr
-      mirror acc []     = []
-      mirror acc [x]    = x:acc
-      mirror acc (x:xs) = x : mirror (x:acc) xs
+      mirror _ acc []          = []
+      mirror True acc [x]      = x:acc
+      mirror False acc [x]     = x:x:acc
+      mirror midcol acc (x:xs) = x : mirror midcol (x:acc) xs
       showRow arr (minj, maxj) i =
         concatMap (\ind -> if arr ! ind then "X" else " ") $
         range ((i, minj), (i, maxj))
 
+bitMapSizeToArraySize :: Integer -> (Integer, Integer)
+bitMapSizeToArraySize size = (halfWidth, height)
+  where
+    height = size
+    halfWidth = if even size
+      then size `div` 2
+      else ((size - 1) `div` 2) + 1
+
 data Config = Config
-  { configSaturation      :: Double
-  , configLightness       :: Double
-  , configBitmapHalfWidth :: Integer
-  , configBitmapHeight    :: Integer
+  { configSaturation :: Double
+  , configLightness  :: Double
+  , configBitmapSize :: Integer
   }
   deriving (Show, Eq)
 
@@ -61,8 +69,7 @@ defaultConfig :: Config
 defaultConfig = Config
   { configSaturation = 0.5
   , configLightness = 0.5
-  , configBitmapHalfWidth = 3
-  , configBitmapHeight = 5
+  , configBitmapSize = 5
   }
 
 genBounded :: Integer -> Username -> Integer
@@ -123,15 +130,17 @@ bitseq :: Integer -> Integer -> [Bool]
 bitseq 0 _     = []
 bitseq len num = (num `mod` 2 == 1) : bitseq (len-1) (num `div` 2)
 
-bitMapFromNum :: (Integer, Integer) -> Integer -> SimBitMap
-bitMapFromNum (hwid, hei) num =
-  SimBitMap $ listArray ((1, 1), (hei, hwid)) $ bitseq (hwid * hei) num
+bitMapFromNum :: Integer -> Integer -> SimBitMap
+bitMapFromNum size num =
+  SimBitMap $ listArray ((1, 1), (height, halfWidth)) $ bitseq (halfWidth * height) num
+  where
+    (halfWidth, height) = bitMapSizeToArraySize size
 
 genBitMap :: Config -> Username -> SimBitMap
-genBitMap cfg = bitMapFromNum (hwid, hei) . genBounded (2^(hwid*hei))
+genBitMap cfg = bitMapFromNum size . genBounded (2^(halfWidth*height))
   where
-    hwid = configBitmapHalfWidth cfg
-    hei = configBitmapHeight cfg
+    size = configBitmapSize cfg
+    (halfWidth, height) = bitMapSizeToArraySize size
 
 main :: IO ()
 main = do
