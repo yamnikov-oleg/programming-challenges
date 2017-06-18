@@ -84,6 +84,7 @@ data Config = Config
   , configBitmapSize :: Integer
   , configBitSize    :: Integer
   , configBackground :: RGB
+  , configPadding    :: Integer
   }
   deriving (Show, Eq)
 
@@ -94,6 +95,7 @@ defaultConfig = Config
   , configBitmapSize = 5
   , configBitSize = 32
   , configBackground = RGB 255 255 255
+  , configPadding = 24
   }
 
 genBounded :: Integer -> Username -> Integer
@@ -170,10 +172,19 @@ drawImage :: Config -> RGB -> SimBitMap -> Image PixelRGB8
 drawImage cfg rgb bm = generateImage (\x y -> rgbToPixel $ bitToCol $ pixToBit x y) imgdim imgdim
   where
     bitsize = configBitSize cfg
+    pad = configPadding cfg
     bmsize = bitMapSize bm
-    imgdim = fromIntegral (bmsize * bitsize)
+    imgdim = fromIntegral (bmsize * bitsize + pad*2)
     bg = configBackground cfg
-    pixToBit x y = Just $ bitMapInd bm (fromIntegral y `div` bitsize, fromIntegral x `div` bitsize)
+    pixToBit x y
+      | i < 0 = Nothing
+      | j < 0 = Nothing
+      | i >= bmsize = Nothing
+      | j >= bmsize = Nothing
+      | otherwise = Just $ bitMapInd bm (j, i)
+      where
+        i = (fromIntegral x - pad) `div` bitsize
+        j = (fromIntegral y - pad) `div` bitsize
     bitToCol (Just True)  = rgb
     bitToCol (Just False) = bg
     bitToCol Nothing      = bg
