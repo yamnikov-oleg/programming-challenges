@@ -1,5 +1,7 @@
 module Main where
 
+import           Codec.Picture      (Image, PixelRGB8 (..), generateImage,
+                                     writePng)
 import           Data.Array         (Array, bounds, listArray, (!))
 import           Data.Char          (ord)
 import           Data.Ix            (range)
@@ -80,6 +82,8 @@ data Config = Config
   { configSaturation :: Double
   , configLightness  :: Double
   , configBitmapSize :: Integer
+  , configBitSize    :: Integer
+  , configBackground :: RGB
   }
   deriving (Show, Eq)
 
@@ -88,6 +92,8 @@ defaultConfig = Config
   { configSaturation = 0.5
   , configLightness = 0.5
   , configBitmapSize = 5
+  , configBitSize = 32
+  , configBackground = RGB 255 255 255
   }
 
 genBounded :: Integer -> Username -> Integer
@@ -160,10 +166,27 @@ genBitMap cfg = bitMapFromNum size . genBounded (2^(halfWidth*height))
     size = configBitmapSize cfg
     (halfWidth, height) = bitMapSizeToArraySize size
 
+drawImage :: Config -> RGB -> SimBitMap -> Image PixelRGB8
+drawImage cfg rgb bm = generateImage (\x y -> rgbToPixel $ bitToCol $ pixToBit x y) imgdim imgdim
+  where
+    bitsize = configBitSize cfg
+    bmsize = bitMapSize bm
+    imgdim = fromIntegral (bmsize * bitsize)
+    bg = configBackground cfg
+    pixToBit x y = Just $ bitMapInd bm (fromIntegral y `div` bitsize, fromIntegral x `div` bitsize)
+    bitToCol (Just True)  = rgb
+    bitToCol (Just False) = bg
+    bitToCol Nothing      = bg
+    rgbToPixel (RGB r g b) = PixelRGB8 r g b
+
 main :: IO ()
 main = do
   args <- getArgs
   let username = unwords args
   let config = defaultConfig
-  print $ genColor config username
-  print $ genBitMap config username
+  let rgb = genColor config username
+  let bm = genBitMap config username
+  let img = drawImage config rgb bm
+  print rgb
+  print bm
+  writePng "out.png" img
