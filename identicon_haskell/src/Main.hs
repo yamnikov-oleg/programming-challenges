@@ -1,13 +1,19 @@
 module Main where
 
-import           Codec.Picture      (Image, PixelRGB8 (..), generateImage,
-                                     writePng)
-import           Data.Array         (Array, bounds, listArray, (!))
-import           Data.Char          (ord)
-import           Data.Ix            (range)
-import           Data.List          (intercalate)
-import           Data.Word          (Word8)
-import           System.Environment (getArgs)
+import           Codec.Picture            (Image, PixelRGB8 (..), generateImage,
+                                           writePng)
+import           Data.Array               (Array, bounds, listArray, (!))
+import           Data.Char                (ord)
+import           Data.Either.Utils        (maybeToEither)
+import           Data.Ix                  (range)
+import           Data.List                (intercalate)
+import           Data.String.Utils        (split)
+import           Data.Word                (Word8)
+import           System.Console.ArgParser (Descr (..), ParserSpec (..), andBy,
+                                           optFlag, parsedBy, reqPos,
+                                           withParseResult)
+import           System.Environment       (getArgs)
+import           Text.Read                (readMaybe)
 
 type Username = String
 
@@ -85,18 +91,9 @@ data Config = Config
   , configBitSize    :: Integer
   , configBackground :: RGB
   , configPadding    :: Integer
+  , configOutputPath :: FilePath
   }
   deriving (Show, Eq)
-
-defaultConfig :: Config
-defaultConfig = Config
-  { configSaturation = 0.5
-  , configLightness = 0.5
-  , configBitmapSize = 5
-  , configBitSize = 32
-  , configBackground = RGB 255 255 255
-  , configPadding = 24
-  }
 
 genBounded :: Integer -> Username -> Integer
 genBounded bound =
@@ -190,14 +187,66 @@ drawImage cfg rgb bm = generateImage (\x y -> rgbToPixel $ bitToCol $ pixToBit x
     bitToCol Nothing      = bg
     rgbToPixel (RGB r g b) = PixelRGB8 r g b
 
+data CLI = CLI
+  { cliUsername   :: String
+  , cliSaturation :: Float
+  , cliLightness  :: Float
+  , cliBitmapSize :: Int
+  , cliBitSize    :: Int
+  , cliBackground :: String
+  , cliPadding    :: Int
+  , cliOutputPath :: FilePath
+  }
+  deriving (Show, Eq)
+
+cliParser :: ParserSpec CLI
+cliParser = CLI
+  `parsedBy` reqPos "username"
+  `andBy` optFlag 0.5 "s" `Descr` "Saturation of the foreground color (default - 0.5)"
+  `andBy` optFlag 0.5 "l" `Descr` "Lightness of the foreground color (defailt - 0.5)"
+  `andBy` optFlag 5 "bmsize" `Descr` "Bit map size in bits (default - 5)"
+  `andBy` optFlag 32 "bitsize" `Descr` "Bit size in pixels (default - 32)"
+  `andBy` optFlag "255,255,255" "bg" `Descr` "Background color (default - 255,255,255)"
+  `andBy` optFlag 24 "pad" `Descr` "Padding in pixels (default - 24)"
+  `andBy` optFlag "out.png" "o" `Descr` "Output file path (default - out.png)"
+
+cliToConfig :: CLI -> Either String (Username, Config)
+cliToConfig cli = do
+  let username = cliUsername cli
+  bg <- maybeToEither "could not parse background color" $ parseColor $ cliBackground cli
+  let config = Config
+        { configSaturation = realToFrac $ cliSaturation cli
+        , configLightness = realToFrac $ cliLightness cli
+        , configBitmapSize = fromIntegral $ cliBitmapSize cli
+        , configBitSize = fromIntegral $ cliBitSize cli
+        , configBackground = bg
+        , configPadding = fromIntegral $ cliPadding cli
+        , configOutputPath = cliOutputPath cli
+        }
+  Right (username, config)
+  where
+    parseInts = mapM readMaybe . split ","
+    intsToColor [r, g, b] = Just $ RGB r g b
+    intsToColor _         = Nothing
+    parseColor str = do
+      ints <- parseInts str
+      intsToColor ints
+
+runApp' :: Config -> Username -> IO()
+runApp' cfg name = do
+  let color = genColor cfg name
+  putStrLn ("Generated color: " ++ show color)
+  let bitmap = genBitMap cfg name
+  putStrLn "Generated bit map:"
+  print bitmap
+  putStrLn ("Writing to '" ++ configOutputPath cfg ++ "'...")
+  writePng (configOutputPath cfg) (drawImage cfg color bitmap)
+
+runApp :: CLI -> IO ()
+runApp cli =
+  case cliToConfig cli of
+    Left msg          -> putStrLn msg
+    Right (name, cfg) -> runApp' cfg name
+
 main :: IO ()
-main = do
-  args <- getArgs
-  let username = unwords args
-  let config = defaultConfig
-  let rgb = genColor config username
-  let bm = genBitMap config username
-  let img = drawImage config rgb bm
-  print rgb
-  print bm
-  writePng "out.png" img
+main = withParseResult cliParser runApp
