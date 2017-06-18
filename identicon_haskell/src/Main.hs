@@ -36,19 +36,18 @@ newtype SimBitMap = SimBitMap (Array (Integer, Integer) Bool)
   deriving (Eq)
 
 instance Show SimBitMap where
-  show (SimBitMap arr) =
+  show bm =
     intercalate "\n" $
-    map (mirror (odd (maxi-mini+1)) [] . showRow arr (minj, maxj)) $
-    range (mini, maxi)
+    map (\i ->
+      map (\j ->
+        bitToChar $ bitMapInd bm (i, j)
+      ) $ range (0, size-1)
+    ) $
+    range (0, size-1)
     where
-      ((mini, minj), (maxi, maxj)) = bounds arr
-      mirror _ acc []          = []
-      mirror True acc [x]      = x:acc
-      mirror False acc [x]     = x:x:acc
-      mirror midcol acc (x:xs) = x : mirror midcol (x:acc) xs
-      showRow arr (minj, maxj) i =
-        concatMap (\ind -> if arr ! ind then "X" else " ") $
-        range ((i, minj), (i, maxj))
+      size = bitMapSize bm
+      bitToChar True  = 'X'
+      bitToChar False = ' '
 
 bitMapSizeToArraySize :: Integer -> (Integer, Integer)
 bitMapSizeToArraySize size = (halfWidth, height)
@@ -57,6 +56,25 @@ bitMapSizeToArraySize size = (halfWidth, height)
     halfWidth = if even size
       then size `div` 2
       else ((size - 1) `div` 2) + 1
+
+bitMapFromList :: Integer -> [Bool] -> SimBitMap
+bitMapFromList size = SimBitMap . listArray ((0, 0), (height-1, halfWidth-1))
+  where
+    (halfWidth, height) = bitMapSizeToArraySize size
+
+bitMapSize :: SimBitMap -> Integer
+bitMapSize (SimBitMap arr) = maxi - mini + 1
+  where
+    ((mini, _), (maxi, _)) = bounds arr
+
+bitMapInd :: SimBitMap -> (Integer, Integer) -> Bool
+bitMapInd bm@(SimBitMap arr) (i, j) = arr ! (i, j_)
+  where
+    size = bitMapSize bm
+    (hwid, _) = bitMapSizeToArraySize size
+    j_ = if j >= hwid
+      then size - j - 1
+      else j
 
 data Config = Config
   { configSaturation :: Double
@@ -132,7 +150,7 @@ bitseq len num = (num `mod` 2 == 1) : bitseq (len-1) (num `div` 2)
 
 bitMapFromNum :: Integer -> Integer -> SimBitMap
 bitMapFromNum size num =
-  SimBitMap $ listArray ((1, 1), (height, halfWidth)) $ bitseq (halfWidth * height) num
+  bitMapFromList size $ bitseq (halfWidth * height) num
   where
     (halfWidth, height) = bitMapSizeToArraySize size
 
