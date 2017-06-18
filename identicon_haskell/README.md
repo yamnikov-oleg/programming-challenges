@@ -4,20 +4,21 @@
 
 The task is to write an identicon generator.
 
-_Identicon_ is a minimalistic avatar picture made up from big pixel blocks of
-two colors. The generator takes a string of username and creates an image file
-with identicon for that username.
+[_Identicon_](https://en.wikipedia.org/wiki/Identicon) is a minimalistic picture
+representing some arbitrary value.
+In this case you will generate identicons for usernames.
 
 The structure of identicon and algorithms used to generate it are not specified -
-their development is creative part of the exercise.
+their development is the creative part of this exercise.
 
 ## Implementation
 
-I've chosen to generate github-like identicons.
+I've chosen to generate github-like identicons: grids of big two-colored pixel blocks.
+At the time of writing github generates those for users with unset avatars.
 
 The CLI has been written in _Haskell_ (using _GHC_ from 8.18 stack resolver).
 
-To try my generator you must compile it using stack: `stack build`.
+To use this generator you must compile it using stack: `stack build`.
 Then call it that way: `stack exec identicon -- someusername`.
 
 Execute `stack exec identicon -- --help` to check out all the CLI options.
