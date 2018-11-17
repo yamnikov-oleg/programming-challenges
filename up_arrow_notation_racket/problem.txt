@@ -1,0 +1,6 @@
+#lang reader "up-arrow.rkt"
+2 ^ 4
+2 ^^ 4
+2 ^^^ 3
+1 ^ 0
+1 ^^ 0
